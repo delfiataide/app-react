@@ -1,33 +1,111 @@
 import { useEffect, useState } from 'react'
+import { onAuthStateChanged, signInAnonymously } from 'firebase/auth'
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where,
+} from 'firebase/firestore'
+import { auth, db } from './firebase'
 import Hero from './components/Hero'
 import ActivityList from './components/ActivityList'
 import ActivityForm from './components/ActivityForm'
 import Balance from './components/Balance'
+import './avisos.css'
 
-const EJEMPLOS = [
-  { id: '1', titulo: 'Clase de Frontend II', categoria: 'estudio', hora: '08:00', duracion: 240, hecha: false },
-  { id: '2', titulo: 'Trabajo: reunión con cliente', categoria: 'trabajo', hora: '14:00', duracion: 90, hecha: false },
-  { id: '3', titulo: 'Caminata', categoria: 'personal', hora: '18:30', duracion: 45, hecha: true },
-]
+const NOMBRE = 'Delfina'
+
+// Fecha de hoy como texto "2026-10-21" (con la hora local, no UTC)
+function hoyISO() {
+  const d = new Date()
+  const dos = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}`
+}
 
 export default function App() {
-  const [actividades, setActividades] = useState(EJEMPLOS)
+  const [uid, setUid] = useState(null)
+  const [todas, setTodas] = useState([])
+  const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState(null)
   const [tema, setTema] = useState('claro')
+
+  const hoy = hoyISO()
+  const actividades = todas.filter((a) => a.fecha === hoy)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', tema === 'oscuro' ? 'dark' : 'light')
   }, [tema])
 
-  // Por ahora estas tres funciones solo cambian datos en memoria.
-  // Más adelante van a leer y escribir en Firebase.
-  function agregar(nueva) {
-    setActividades([...actividades, { ...nueva, id: crypto.randomUUID(), hecha: false }])
+  // 1) Identifica al visitante con auth anónima
+  // 2) Escucha en tiempo real SUS actividades en Firestore
+  useEffect(() => {
+    let dejarDeEscuchar = null
+    const cortarAuth = onAuthStateChanged(auth, (usuario) => {
+      if (!usuario) {
+        signInAnonymously(auth).catch(() => {
+          setError('No se pudo iniciar sesión. Revisá que el acceso anónimo esté activado en Firebase.')
+          setCargando(false)
+        })
+        return
+      }
+      setUid(usuario.uid)
+      const consulta = query(collection(db, 'actividades'), where('uid', '==', usuario.uid))
+      dejarDeEscuchar = onSnapshot(
+        consulta,
+        (snap) => {
+          setTodas(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+          setError(null)
+          setCargando(false)
+        },
+        () => {
+          setError('No se pudieron cargar tus actividades. Revisá tu conexión y las reglas de Firestore.')
+          setCargando(false)
+        },
+      )
+    })
+    return () => {
+      cortarAuth()
+      if (dejarDeEscuchar) dejarDeEscuchar()
+    }
+  }, [])
+
+  // Escribir en Firestore: agregar, modificar y eliminar
+  async function agregar(nueva) {
+    try {
+      await addDoc(collection(db, 'actividades'), {
+        ...nueva,
+        uid,
+        fecha: hoy,
+        hecha: false,
+        creadaEn: serverTimestamp(),
+      })
+      return true
+    } catch {
+      setError('No se pudo guardar la actividad. Probá de nuevo.')
+      return false
+    }
   }
-  function alternarHecha(id) {
-    setActividades(actividades.map((a) => (a.id === id ? { ...a, hecha: !a.hecha } : a)))
+
+  async function alternarHecha(id) {
+    const actual = todas.find((a) => a.id === id)
+    try {
+      await updateDoc(doc(db, 'actividades', id), { hecha: !actual.hecha })
+    } catch {
+      setError('No se pudo actualizar la actividad.')
+    }
   }
-  function eliminar(id) {
-    setActividades(actividades.filter((a) => a.id !== id))
+
+  async function eliminar(id) {
+    try {
+      await deleteDoc(doc(db, 'actividades', id))
+    } catch {
+      setError('No se pudo eliminar la actividad.')
+    }
   }
 
   return (
@@ -46,11 +124,17 @@ export default function App() {
       </aside>
 
       <main>
-        <Hero nombre="Sofi" actividades={actividades} />
+        <Hero nombre={NOMBRE} actividades={actividades} />
+        {error && <div className="aviso" role="alert">{error}</div>}
         <div className="grilla">
           <section className="card">
             <h2>Tu día</h2>
-            <ActivityList actividades={actividades} onToggle={alternarHecha} onDelete={eliminar} />
+            <ActivityList
+              actividades={actividades}
+              cargando={cargando}
+              onToggle={alternarHecha}
+              onDelete={eliminar}
+            />
             <ActivityForm onAdd={agregar} />
           </section>
           <Balance actividades={actividades} />

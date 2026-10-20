@@ -1,0 +1,16 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Cada actividad pertenece a un usuario (campo uid).
+    // Solo su dueño puede leerla, crearla, modificarla o borrarla.
+    match /actividades/{id} {
+      allow read, delete: if request.auth != null
+                          && resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid;
+      allow update: if request.auth != null
+                    && resource.data.uid == request.auth.uid
+                    && request.resource.data.uid == request.auth.uid;
+    }
+  }
+}

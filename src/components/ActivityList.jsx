@@ -1,7 +1,11 @@
 import { CATS, formatMin } from '../data'
 
-export default function ActivityList({ actividades, onToggle, onDelete }) {
+export default function ActivityList({ actividades, cargando, onToggle, onDelete }) {
   const ordenadas = [...actividades].sort((a, b) => a.hora.localeCompare(b.hora))
+
+  if (cargando) {
+    return <p className="vacio">Cargando tu día…</p>
+  }
 
   if (ordenadas.length === 0) {
     return <p className="vacio">Todavía no cargaste nada para hoy. Agregá la primera actividad abajo.</p>

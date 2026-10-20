@@ -6,9 +6,10 @@ export default function ActivityForm({ onAdd }) {
   const [categoria, setCategoria] = useState('estudio')
   const [hora, setHora] = useState('09:00')
   const [duracion, setDuracion] = useState(60)
+  const [guardando, setGuardando] = useState(false)
   const [mensaje, setMensaje] = useState(null) // { tipo: 'ok' | 'err', texto }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     if (!titulo.trim()) {
       setMensaje({ tipo: 'err', texto: 'Escribí un nombre para la actividad.' })
@@ -18,9 +19,16 @@ export default function ActivityForm({ onAdd }) {
       setMensaje({ tipo: 'err', texto: 'La duración tiene que ser de al menos 15 minutos.' })
       return
     }
-    onAdd({ titulo: titulo.trim(), categoria, hora, duracion: Number(duracion) })
-    setTitulo('')
-    setMensaje({ tipo: 'ok', texto: 'Actividad agregada.' })
+    setGuardando(true)
+    setMensaje(null)
+    const exito = await onAdd({ titulo: titulo.trim(), categoria, hora, duracion: Number(duracion) })
+    setGuardando(false)
+    if (exito) {
+      setTitulo('')
+      setMensaje({ tipo: 'ok', texto: 'Actividad guardada.' })
+    } else {
+      setMensaje({ tipo: 'err', texto: 'No se pudo guardar. Probá de nuevo.' })
+    }
   }
 
   return (
@@ -58,7 +66,9 @@ export default function ActivityForm({ onAdd }) {
         />
       </label>
       <div className="fin">
-        <button className="btn" type="submit">Agregar al día</button>
+        <button className="btn" type="submit" disabled={guardando}>
+          {guardando ? 'Guardando…' : 'Agregar al día'}
+        </button>
       </div>
       <p className={'msg ancho ' + (mensaje?.tipo ?? '')} role="status">
         {mensaje?.texto}
