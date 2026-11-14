@@ -1,6 +1,12 @@
 import { CATS, formatMin } from '../data'
-
-export default function ActivityList({ actividades, cargando, onToggle, onDelete }) {
+import Reprogramar from './Reprogramar'
+export default function ActivityList({
+  actividades,
+  cargando,
+  onToggle,
+  onDelete,
+  onReschedule,
+}) {
   const ordenadas = [...actividades].sort((a, b) => a.hora.localeCompare(b.hora))
 
   if (cargando) {
@@ -8,7 +14,7 @@ export default function ActivityList({ actividades, cargando, onToggle, onDelete
   }
 
   if (ordenadas.length === 0) {
-    return <p className="vacio">Todavía no cargaste nada para hoy. Agregá la primera actividad abajo.</p>
+    return <p className="vacio">No hay actividades para este día.</p>
   }
 
   return (
@@ -30,6 +36,13 @@ export default function ActivityList({ actividades, cargando, onToggle, onDelete
             <div className="meta">
               {a.hora} · {formatMin(a.duracion)} · {CATS[a.categoria]}
             </div>
+            {onReschedule && (
+  <Reprogramar
+    key={`${a.id}-${a.fecha}`}
+    actividad={a}
+    onReschedule={onReschedule}
+  />
+)}
           </div>
           <button className="borrar" onClick={() => onDelete(a.id)} aria-label="Eliminar actividad">
             ✕

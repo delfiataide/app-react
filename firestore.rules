@@ -1,16 +1,69 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Cada actividad pertenece a un usuario (campo uid).
-    // Solo su dueño puede leerla, crearla, modificarla o borrarla.
     match /actividades/{id} {
       allow read, delete: if request.auth != null
                           && resource.data.uid == request.auth.uid;
+
       allow create: if request.auth != null
                     && request.resource.data.uid == request.auth.uid;
+
       allow update: if request.auth != null
                     && resource.data.uid == request.auth.uid
                     && request.resource.data.uid == request.auth.uid;
+    }
+
+    match /habitos/{id} {
+      allow read, delete: if request.auth != null
+                          && resource.data.uid == request.auth.uid;
+
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid;
+
+      allow update: if request.auth != null
+                    && resource.data.uid == request.auth.uid
+                    && request.resource.data.uid == request.auth.uid;
+    match /clases/{id} {
+  function sesionIniciada() {
+    return request.auth != null;
+  }
+
+  function claseValida() {
+    let datos = request.resource.data;
+
+    return datos.keys().hasAll([
+        'uid', 'materia', 'dia', 'inicio', 'fin', 'lugar'
+      ])
+      && datos.keys().hasOnly([
+        'uid', 'materia', 'dia', 'inicio', 'fin', 'lugar'
+      ])
+      && datos.uid == request.auth.uid
+      && datos.materia is string
+      && datos.materia.size() > 0
+      && datos.materia.size() <= 80
+      && datos.dia is int
+      && datos.dia >= 0
+      && datos.dia <= 6
+      && datos.inicio is string
+      && datos.inicio.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')
+      && datos.fin is string
+      && datos.fin.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')
+      && datos.fin > datos.inicio
+      && datos.lugar is string
+      && datos.lugar.size() <= 200;
+  }
+
+  allow read, delete: if sesionIniciada()
+                     && resource.data.uid == request.auth.uid;
+
+  allow create: if sesionIniciada()
+                && claseValida();
+
+  allow update: if sesionIniciada()
+                && resource.data.uid == request.auth.uid
+                && claseValida();
+}
     }
   }
 }

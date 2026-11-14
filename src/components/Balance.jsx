@@ -1,27 +1,49 @@
 import { CATS, formatMin } from '../data'
 
-export default function Balance({ actividades }) {
-  const porCategoria = Object.fromEntries(Object.keys(CATS).map((k) => [k, 0]))
-  actividades.forEach((a) => {
-    porCategoria[a.categoria] += a.duracion
+export default function Balance({
+  actividades,
+  titulo = 'Balance de hoy',
+}) {
+  const porCategoria = Object.fromEntries(
+    Object.keys(CATS).map((categoria) => [categoria, 0])
+  )
+
+  actividades.forEach((actividad) => {
+    porCategoria[actividad.categoria] += actividad.duracion
   })
-  const total = actividades.reduce((suma, a) => suma + a.duracion, 0)
+
+  const total = actividades.reduce(
+    (suma, actividad) => suma + actividad.duracion,
+    0
+  )
 
   return (
     <section className="card">
-      <h2>Balance de hoy</h2>
+      <h2>{titulo}</h2>
+
       <div className="barra" aria-hidden="true">
-        {Object.keys(CATS).map((k) =>
-          porCategoria[k] ? (
-            <i key={k} style={{ width: `${(porCategoria[k] / total) * 100}%`, background: `var(--${k})` }} />
-          ) : null,
+        {Object.keys(CATS).map((categoria) =>
+          porCategoria[categoria] > 0 ? (
+            <i
+              key={categoria}
+              style={{
+                width: `${(porCategoria[categoria] / total) * 100}%`,
+                background: `var(--${categoria})`,
+              }}
+            />
+          ) : null
         )}
       </div>
-      {Object.entries(CATS).map(([k, nombre]) => (
-        <div className="fila" key={k} style={{ '--c': `var(--${k})` }}>
+
+      {Object.entries(CATS).map(([categoria, nombre]) => (
+        <div
+          className="fila"
+          key={categoria}
+          style={{ '--c': `var(--${categoria})` }}
+        >
           <span className="punto" />
           <span>{nombre}</span>
-          <b>{formatMin(porCategoria[k])}</b>
+          <b>{formatMin(porCategoria[categoria])}</b>
         </div>
       ))}
     </section>

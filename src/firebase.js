@@ -12,5 +12,5 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig)
 
-export const auth = getAuth(app) // identifica a cada visitante (anónimo)
+export const auth = getAuth(app) // gestiona las cuentas y las sesiones
 export const db = getFirestore(app) // base de datos Cloud Firestore
