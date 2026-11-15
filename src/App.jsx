@@ -50,7 +50,11 @@ export default function App() {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState(null)
 
-  const [tema, setTema] = useState('claro')
+  const [tema, setTema] = useState(() => {
+  return localStorage.getItem('equilibrio-tema') === 'oscuro'
+    ? 'oscuro'
+    : 'claro'
+})
   const [seccion, setSeccion] = useState('Hoy')
   const [semanaOffset, setSemanaOffset] = useState(0)
   const [modoEstudiante, setModoEstudiante] = useState(false)
@@ -102,11 +106,13 @@ export default function App() {
   ]
 
   useEffect(() => {
-    document.documentElement.setAttribute(
-      'data-theme',
-      tema === 'oscuro' ? 'dark' : 'light'
-    )
-  }, [tema])
+  document.documentElement.setAttribute(
+    'data-theme',
+    tema === 'oscuro' ? 'dark' : 'light'
+  )
+
+  localStorage.setItem('equilibrio-tema', tema)
+}, [tema])
 
   useEffect(() => {
     return onAuthStateChanged(auth, (actual) => {

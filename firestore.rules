@@ -2,68 +2,89 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function sesionIniciada() {
+      return request.auth != null;
+    }
+
+    function esPropietario() {
+      return sesionIniciada()
+        && resource.data.uid == request.auth.uid;
+    }
+
+    function conservaPropietario() {
+      return sesionIniciada()
+        && request.resource.data.uid == request.auth.uid;
+    }
+
     match /actividades/{id} {
-      allow read, delete: if request.auth != null
-                          && resource.data.uid == request.auth.uid;
-
-      allow create: if request.auth != null
-                    && request.resource.data.uid == request.auth.uid;
-
-      allow update: if request.auth != null
-                    && resource.data.uid == request.auth.uid
-                    && request.resource.data.uid == request.auth.uid;
+      allow read, delete: if esPropietario();
+      allow create: if conservaPropietario();
+      allow update: if esPropietario()
+                    && conservaPropietario();
     }
 
     match /habitos/{id} {
-      allow read, delete: if request.auth != null
-                          && resource.data.uid == request.auth.uid;
+      allow read, delete: if esPropietario();
+      allow create: if conservaPropietario();
+      allow update: if esPropietario()
+                    && conservaPropietario();
+    }
 
-      allow create: if request.auth != null
-                    && request.resource.data.uid == request.auth.uid;
+    match /objetivos/{usuarioId} {
+      function objetivoValido() {
+        let datos = request.resource.data;
 
-      allow update: if request.auth != null
-                    && resource.data.uid == request.auth.uid
-                    && request.resource.data.uid == request.auth.uid;
+        return datos.keys().hasAll(['categoria', 'minutos'])
+          && datos.keys().hasOnly(['categoria', 'minutos'])
+          && datos.categoria in [
+            'estudio', 'trabajo', 'personal', 'descanso'
+          ]
+          && datos.minutos is int
+          && datos.minutos >= 15
+          && datos.minutos <= 10080;
+      }
+
+      allow read, delete: if sesionIniciada()
+                         && usuarioId == request.auth.uid;
+
+      allow create, update: if sesionIniciada()
+                            && usuarioId == request.auth.uid
+                            && objetivoValido();
+    }
+
     match /clases/{id} {
-  function sesionIniciada() {
-    return request.auth != null;
-  }
+      function claseValida() {
+        let datos = request.resource.data;
 
-  function claseValida() {
-    let datos = request.resource.data;
+        return datos.keys().hasAll([
+            'uid', 'materia', 'dia', 'inicio', 'fin', 'lugar'
+          ])
+          && datos.keys().hasOnly([
+            'uid', 'materia', 'dia', 'inicio', 'fin', 'lugar'
+          ])
+          && datos.uid == request.auth.uid
+          && datos.materia is string
+          && datos.materia.size() > 0
+          && datos.materia.size() <= 80
+          && datos.dia is int
+          && datos.dia >= 0
+          && datos.dia <= 6
+          && datos.inicio is string
+          && datos.inicio.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')
+          && datos.fin is string
+          && datos.fin.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')
+          && datos.fin > datos.inicio
+          && datos.lugar is string
+          && datos.lugar.size() <= 200;
+      }
 
-    return datos.keys().hasAll([
-        'uid', 'materia', 'dia', 'inicio', 'fin', 'lugar'
-      ])
-      && datos.keys().hasOnly([
-        'uid', 'materia', 'dia', 'inicio', 'fin', 'lugar'
-      ])
-      && datos.uid == request.auth.uid
-      && datos.materia is string
-      && datos.materia.size() > 0
-      && datos.materia.size() <= 80
-      && datos.dia is int
-      && datos.dia >= 0
-      && datos.dia <= 6
-      && datos.inicio is string
-      && datos.inicio.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')
-      && datos.fin is string
-      && datos.fin.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')
-      && datos.fin > datos.inicio
-      && datos.lugar is string
-      && datos.lugar.size() <= 200;
-  }
+      allow read, delete: if esPropietario();
 
-  allow read, delete: if sesionIniciada()
-                     && resource.data.uid == request.auth.uid;
+      allow create: if sesionIniciada()
+                    && claseValida();
 
-  allow create: if sesionIniciada()
-                && claseValida();
-
-  allow update: if sesionIniciada()
-                && resource.data.uid == request.auth.uid
-                && claseValida();
-}
+      allow update: if esPropietario()
+                    && claseValida();
     }
   }
 }
