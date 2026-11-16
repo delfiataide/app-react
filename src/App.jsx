@@ -56,6 +56,7 @@ export default function App() {
     : 'claro'
 })
   const [seccion, setSeccion] = useState('Hoy')
+  const [menuAbierto, setMenuAbierto] = useState(false)
   const [semanaOffset, setSemanaOffset] = useState(0)
   const [modoEstudiante, setModoEstudiante] = useState(false)
 
@@ -139,6 +140,7 @@ export default function App() {
       }
 
       setUsuario(actual)
+      setMenuAbierto(false)
       setModoEstudiante(estudianteActivo)
       setSeccion(siguiente)
       setSemanaOffset(0)
@@ -308,6 +310,20 @@ export default function App() {
       <aside className="lateral">
         <div className="logo">Equilibrio</div>
 
+        <button
+          className="menu-boton"
+          type="button"
+          aria-expanded={menuAbierto}
+          aria-controls="menu-principal"
+          onClick={() => setMenuAbierto((abierto) => !abierto)}
+        >
+          {menuAbierto ? 'Cerrar menú' : 'Menú'}
+        </button>
+
+        <div
+          id="menu-principal"
+          className={`menu-contenido${menuAbierto ? ' abierto' : ''}`}
+        >
         <nav className="nav" aria-label="Secciones">
           {secciones.map((nombreSeccion) => (
             <button
@@ -316,7 +332,10 @@ export default function App() {
               aria-current={
                 seccion === nombreSeccion ? 'page' : undefined
               }
-              onClick={() => setSeccion(nombreSeccion)}
+              onClick={() => {
+                setSeccion(nombreSeccion)
+                setMenuAbierto(false)
+              }}
             >
               {nombreSeccion}
             </button>
@@ -348,6 +367,7 @@ export default function App() {
         >
           Cambiar tema
         </button>
+        </div>
       </aside>
 
       <main>
