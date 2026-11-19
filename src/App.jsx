@@ -82,11 +82,7 @@ export default function App() {
   )
 
   const inicioSemana = new Date(`${hoy}T12:00:00`)
-  const diaSemana = (inicioSemana.getDay() + 6) % 7
-
-  inicioSemana.setDate(
-    inicioSemana.getDate() - diaSemana + semanaOffset * 7
-  )
+  inicioSemana.setDate(inicioSemana.getDate() + semanaOffset * 7)
 
   const fechasSemanaVisible = Array.from(
     { length: 7 },
